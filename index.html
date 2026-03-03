@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IndieAn Admin Panel</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen">
+        <div class="login-card">
+            <h1>IndieAn Admin</h1>
+            <p class="subtitle">Curriculum Management</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="api-url">API Base URL</label>
+                    <input type="url" id="api-url" placeholder="https://your-api.run.app" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="admin@indiean.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+                <p id="login-error" class="error-text hidden"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-screen" class="screen hidden">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <h2>IndieAn Admin</h2>
+                <nav class="topbar-nav">
+                    <button id="roadmap-nav-btn" class="btn btn-ghost">Curriculum</button>
+                    <button id="notifications-nav-btn" class="btn btn-ghost">Notifications</button>
+                </nav>
+            </div>
+            <div class="topbar-right">
+                <select id="instrument-filter" class="select-input">
+                    <option value="">All Instruments</option>
+                    <option value="piano">Piano</option>
+                    <option value="guitar">Guitar</option>
+                    <option value="drums">Drums</option>
+                    <option value="vocals">Vocals</option>
+                </select>
+                <button id="logout-btn" class="btn btn-ghost">Logout</button>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <main class="content">
+            <!-- Sidebar: Module List -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <h3>Modules</h3>
+                    <button id="add-module-btn" class="btn btn-sm btn-primary">+ Module</button>
+                </div>
+                <div id="module-list" class="module-list">
+                    <!-- Dynamically populated -->
+                </div>
+            </aside>
+
+            <!-- Main Panel: Roadmap View -->
+            <section class="main-panel" id="roadmap-view">
+                <div id="empty-state" class="empty-state">
+                    <p>Select a module to view its lessons and components</p>
+                </div>
+
+                <!-- Module Detail View -->
+                <div id="module-detail" class="hidden">
+                    <div class="module-header">
+                        <div>
+                            <h2 id="module-title"></h2>
+                            <span id="module-meta" class="meta-text"></span>
+                        </div>
+                        <div class="module-actions">
+                            <button id="toggle-publish-btn" class="btn btn-sm"></button>
+                            <button id="edit-module-btn" class="btn btn-sm btn-ghost">Edit</button>
+                            <button id="delete-module-btn" class="btn btn-sm btn-danger">Delete</button>
+                        </div>
+                    </div>
+
+                    <div class="lessons-section">
+                        <div class="section-header">
+                            <h3>Lessons & Components</h3>
+                            <button id="add-lesson-btn" class="btn btn-sm btn-primary">+ Lesson</button>
+                        </div>
+                        <div id="lessons-list" class="lessons-list">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main Panel: Notifications View -->
+            <section class="main-panel hidden" id="notifications-view">
+                <div class="notifications-container">
+                    <div class="notifications-header">
+                        <h2>Push Notifications</h2>
+                        <p class="subtitle">Send push notifications to users</p>
+                    </div>
+
+                    <div class="notifications-content">
+                        <div class="notifications-form">
+                            <form id="send-notification-form">
+                                <div class="form-group">
+                                    <label for="notif-title">Title *</label>
+                                    <input type="text" id="notif-title" placeholder="Notification title" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="notif-body">Message *</label>
+                                    <textarea id="notif-body" placeholder="Notification body/message" rows="4" required></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="notif-user-id">Target User (optional)</label>
+                                    <input type="text" id="notif-user-id" placeholder="Leave empty to broadcast to all users">
+                                    <p class="help-text">If empty, notification will be sent to all users with active devices</p>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">Send Notification</button>
+                                </div>
+                                <p id="send-notif-error" class="error-text hidden"></p>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Overlay -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal" id="modal">
+            <div class="modal-header">
+                <h3 id="modal-title"></h3>
+                <button id="modal-close" class="btn btn-ghost">&times;</button>
+            </div>
+            <form id="modal-form" class="modal-body">
+                <!-- Dynamically populated -->
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
