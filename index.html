@@ -40,6 +40,7 @@
                 <nav class="topbar-nav">
                     <button id="roadmap-nav-btn" class="btn btn-ghost">Curriculum</button>
                     <button id="notifications-nav-btn" class="btn btn-ghost">Notifications</button>
+                    <button id="user-progress-nav-btn" class="btn btn-ghost">User Progress</button>
                 </nav>
             </div>
             <div class="topbar-right">
@@ -131,6 +132,81 @@
                                 </div>
                                 <p id="send-notif-error" class="error-text hidden"></p>
                             </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- Main Panel: User Progress View -->
+            <section class="main-panel hidden" id="user-progress-view">
+                <div class="up-container">
+                    <div class="up-header">
+                        <h2>User Progress</h2>
+                        <p class="subtitle">Look up video and exercise progress for any user</p>
+                    </div>
+
+                    <div class="up-search-card">
+                        <div class="up-search-row">
+                            <input type="text" id="up-user-id-input" placeholder="Enter User ID (UUID)" class="up-search-input">
+                            <button id="up-search-btn" class="btn btn-primary">Look Up</button>
+                        </div>
+                        <p id="up-error" class="error-text hidden"></p>
+                    </div>
+
+                    <div id="up-results" class="hidden">
+                        <!-- User info card -->
+                        <div class="up-card">
+                            <div class="up-user-header">
+                                <div>
+                                    <div class="up-user-email" id="up-email"></div>
+                                    <div class="up-user-meta" id="up-meta"></div>
+                                </div>
+                                <div class="up-stats-row">
+                                    <div class="up-stat"><span class="up-stat-val" id="up-streak"></span><span class="up-stat-lbl">Streak</span></div>
+                                    <div class="up-stat"><span class="up-stat-val" id="up-gems"></span><span class="up-stat-lbl">Gems</span></div>
+                                    <div class="up-stat"><span class="up-stat-val" id="up-hearts"></span><span class="up-stat-lbl">Hearts</span></div>
+                                    <div class="up-stat"><span class="up-stat-val" id="up-completed"></span><span class="up-stat-lbl">Completed</span></div>
+                                </div>
+                            </div>
+                            <div class="up-position" id="up-position"></div>
+                        </div>
+
+                        <!-- Video progress table -->
+                        <div class="up-section">
+                            <h3 class="up-section-title">Video Progress <span id="up-video-count" class="up-count-badge"></span></h3>
+                            <div id="up-video-empty" class="up-empty hidden">No video progress recorded yet.</div>
+                            <table class="up-table hidden" id="up-video-table">
+                                <thead>
+                                    <tr>
+                                        <th>Component</th>
+                                        <th>Watch %</th>
+                                        <th>Watch Time</th>
+                                        <th>Replays</th>
+                                        <th>Status</th>
+                                        <th>Last Watched</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="up-video-tbody"></tbody>
+                            </table>
+                        </div>
+
+                        <!-- Exercise progress table -->
+                        <div class="up-section">
+                            <h3 class="up-section-title">Exercise Progress <span id="up-exercise-count" class="up-count-badge"></span></h3>
+                            <div id="up-exercise-empty" class="up-empty hidden">No exercise progress recorded yet.</div>
+                            <table class="up-table hidden" id="up-exercise-table">
+                                <thead>
+                                    <tr>
+                                        <th>Component</th>
+                                        <th>Best Score</th>
+                                        <th>Stars</th>
+                                        <th>Attempts</th>
+                                        <th>Completions</th>
+                                        <th>Best Time</th>
+                                        <th>Last Attempt</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="up-exercise-tbody"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

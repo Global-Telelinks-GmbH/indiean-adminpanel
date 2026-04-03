@@ -424,6 +424,219 @@ textarea { resize: vertical; min-height: 60px; }
     margin-top: 4px;
 }
 
+/* User Progress */
+.up-container {
+    max-width: 900px;
+    padding: 24px;
+}
+
+.up-header {
+    margin-bottom: 24px;
+}
+
+.up-header h2 {
+    font-size: 1.75rem;
+    margin-bottom: 4px;
+}
+
+.up-search-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.up-search-row {
+    display: flex;
+    gap: 12px;
+}
+
+.up-search-input {
+    flex: 1;
+    font-family: monospace;
+    font-size: 0.85rem;
+}
+
+.up-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.up-user-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.up-user-email {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.up-user-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.up-stats-row {
+    display: flex;
+    gap: 20px;
+}
+
+.up-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.up-stat-val {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.up-stat-lbl {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.up-position {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+
+.up-position-label {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.up-section {
+    margin-bottom: 28px;
+}
+
+.up-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.up-count-badge {
+    background: var(--bg-hover);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.up-empty {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    padding: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.up-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.up-table th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--bg-hover);
+    border-bottom: 1px solid var(--border);
+}
+
+.up-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.up-table tr:last-child td {
+    border-bottom: none;
+}
+
+.up-table tr:hover td {
+    background: var(--bg-hover);
+}
+
+.up-progress-bar-wrap {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    width: 80px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+.up-progress-bar {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 2px;
+    max-width: 100%;
+}
+
+.up-pct {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    vertical-align: middle;
+}
+
+.up-badge-done {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--success);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.up-badge-pending {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.up-date {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

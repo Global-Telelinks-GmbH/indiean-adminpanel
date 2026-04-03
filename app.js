@@ -562,13 +562,129 @@ function toast(message, type = 'success') {
 function showRoadmapView() {
     document.getElementById('roadmap-view').classList.remove('hidden');
     document.getElementById('notifications-view').classList.add('hidden');
+    document.getElementById('user-progress-view').classList.add('hidden');
     document.getElementById('sidebar').classList.remove('hidden');
 }
 
 function showNotificationsView() {
     document.getElementById('roadmap-view').classList.add('hidden');
     document.getElementById('notifications-view').classList.remove('hidden');
+    document.getElementById('user-progress-view').classList.add('hidden');
     document.getElementById('sidebar').classList.add('hidden');
+}
+
+function showUserProgressView() {
+    document.getElementById('roadmap-view').classList.add('hidden');
+    document.getElementById('notifications-view').classList.add('hidden');
+    document.getElementById('user-progress-view').classList.remove('hidden');
+    document.getElementById('sidebar').classList.add('hidden');
+}
+
+// ==========================================
+// USER PROGRESS
+// ==========================================
+
+async function loadUserProgress(userId) {
+    const errorEl = document.getElementById('up-error');
+    const resultsEl = document.getElementById('up-results');
+    errorEl.classList.add('hidden');
+    resultsEl.classList.add('hidden');
+
+    const data = await api('GET', `/api/v1/admin/roadmap/users/${userId.trim()}/progress`);
+
+    // User info
+    document.getElementById('up-email').textContent = data.email;
+    const tier = data.subscription_tier || 'free';
+    const status = data.subscription_status || 'none';
+    const instrText = data.instrument ? `${data.instrument.charAt(0).toUpperCase() + data.instrument.slice(1)}` : 'No instrument';
+    document.getElementById('up-meta').textContent = `${instrText} · ${tier.charAt(0).toUpperCase() + tier.slice(1)} (${status})`;
+
+    // Stats
+    document.getElementById('up-streak').textContent = data.streak;
+    document.getElementById('up-gems').textContent = data.gems;
+    document.getElementById('up-hearts').textContent = data.hearts;
+    document.getElementById('up-completed').textContent = data.components_completed;
+
+    // Current position
+    const posEl = document.getElementById('up-position');
+    if (data.current_module) {
+        posEl.innerHTML = `<span class="up-position-label">Currently on:</span> ${escHtml(data.current_module)} › ${escHtml(data.current_lesson || '—')} › ${escHtml(data.current_component || '—')}`;
+        posEl.classList.remove('hidden');
+    } else {
+        posEl.classList.add('hidden');
+    }
+
+    // Video progress
+    const videoCount = data.video_progress.length;
+    document.getElementById('up-video-count').textContent = videoCount;
+    if (videoCount === 0) {
+        document.getElementById('up-video-empty').classList.remove('hidden');
+        document.getElementById('up-video-table').classList.add('hidden');
+    } else {
+        document.getElementById('up-video-empty').classList.add('hidden');
+        document.getElementById('up-video-table').classList.remove('hidden');
+        document.getElementById('up-video-tbody').innerHTML = data.video_progress.map(v => `
+            <tr>
+                <td>
+                    <span class="component-type-badge type-${v.component_type}">${v.component_type}</span>
+                    ${escHtml(v.component_title)}
+                </td>
+                <td>
+                    <div class="up-progress-bar-wrap">
+                        <div class="up-progress-bar" style="width:${Math.round(v.watch_percentage * 100)}%"></div>
+                    </div>
+                    <span class="up-pct">${Math.round(v.watch_percentage * 100)}%</span>
+                </td>
+                <td>${formatSeconds(v.total_watch_time_seconds)}</td>
+                <td>${v.total_replay_count}</td>
+                <td>${v.completed ? '<span class="up-badge-done">Done</span>' : '<span class="up-badge-pending">In Progress</span>'}</td>
+                <td class="up-date">${v.last_watched_at ? formatDate(v.last_watched_at) : '—'}</td>
+            </tr>
+        `).join('');
+    }
+
+    // Exercise progress
+    const exCount = data.exercise_progress.length;
+    document.getElementById('up-exercise-count').textContent = exCount;
+    if (exCount === 0) {
+        document.getElementById('up-exercise-empty').classList.remove('hidden');
+        document.getElementById('up-exercise-table').classList.add('hidden');
+    } else {
+        document.getElementById('up-exercise-empty').classList.add('hidden');
+        document.getElementById('up-exercise-table').classList.remove('hidden');
+        document.getElementById('up-exercise-tbody').innerHTML = data.exercise_progress.map(e => `
+            <tr>
+                <td>
+                    <span class="component-type-badge type-${e.component_type}">${e.component_type}</span>
+                    ${escHtml(e.component_title)}
+                </td>
+                <td>${e.best_score != null ? Math.round(e.best_score * 100) + '%' : '—'}</td>
+                <td>${e.best_stars != null ? '⭐'.repeat(e.best_stars) || '0' : '—'}</td>
+                <td>${e.attempt_count}</td>
+                <td>${e.completion_count}</td>
+                <td>${e.best_time_taken_seconds != null ? formatSeconds(e.best_time_taken_seconds) : '—'}</td>
+                <td class="up-date">${e.last_attempted_at ? formatDate(e.last_attempted_at) : '—'}</td>
+            </tr>
+        `).join('');
+    }
+
+    resultsEl.classList.remove('hidden');
+}
+
+function formatSeconds(secs) {
+    if (secs == null) return '—';
+    if (secs < 60) return `${secs}s`;
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return s > 0 ? `${m}m ${s}s` : `${m}m`;
+}
+
+function formatDate(iso) {
+    try {
+        return new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+    } catch {
+        return iso;
+    }
 }
 
 async function sendNotification(title, body, userId = null) {
@@ -623,6 +739,28 @@ document.getElementById('instrument-filter').addEventListener('change', loadModu
 // Navigation buttons
 document.getElementById('roadmap-nav-btn').addEventListener('click', showRoadmapView);
 document.getElementById('notifications-nav-btn').addEventListener('click', showNotificationsView);
+document.getElementById('user-progress-nav-btn').addEventListener('click', showUserProgressView);
+
+// User Progress search
+document.getElementById('up-search-btn').addEventListener('click', async () => {
+    const userId = document.getElementById('up-user-id-input').value.trim();
+    const errorEl = document.getElementById('up-error');
+    if (!userId) {
+        errorEl.textContent = 'Please enter a User ID';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+    try {
+        await loadUserProgress(userId);
+    } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+    }
+});
+
+document.getElementById('up-user-id-input').addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') document.getElementById('up-search-btn').click();
+});
 
 // Notifications form
 document.getElementById('send-notification-form').addEventListener('submit', async (e) => {
