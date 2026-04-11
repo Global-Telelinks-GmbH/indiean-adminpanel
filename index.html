@@ -41,6 +41,7 @@
                     <button id="roadmap-nav-btn" class="btn btn-ghost">Curriculum</button>
                     <button id="notifications-nav-btn" class="btn btn-ghost">Notifications</button>
                     <button id="user-progress-nav-btn" class="btn btn-ghost">User Progress</button>
+                    <button id="leaderboard-nav-btn" class="btn btn-ghost">Leaderboard</button>
                 </nav>
             </div>
             <div class="topbar-right">
@@ -213,6 +214,57 @@
             </section>
         </main>
     </div>
+
+            <!-- Main Panel: Leaderboard View -->
+            <section class="main-panel hidden" id="leaderboard-view">
+                <div class="lb-container">
+                    <div class="lb-header">
+                        <h2>Leaderboard</h2>
+                        <p class="subtitle">Compute and inspect weekly leaderboard snapshots per instrument</p>
+                    </div>
+
+                    <div class="lb-controls">
+                        <div class="lb-controls-row">
+                            <div class="form-group">
+                                <label for="lb-instrument">Instrument</label>
+                                <select id="lb-instrument" class="select-input">
+                                    <option value="piano">Piano</option>
+                                    <option value="guitar">Guitar</option>
+                                    <option value="drums">Drums</option>
+                                    <option value="vocals">Vocals</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="lb-week-start">Week Start (Monday)</label>
+                                <input type="date" id="lb-week-start" class="select-input">
+                            </div>
+                            <div class="lb-btn-group">
+                                <button id="lb-refresh-btn" class="btn btn-primary">Compute / Refresh</button>
+                                <button id="lb-view-btn" class="btn btn-ghost">View Snapshot</button>
+                            </div>
+                        </div>
+                        <p id="lb-status" class="lb-status hidden"></p>
+                        <p id="lb-error" class="error-text hidden"></p>
+                    </div>
+
+                    <div id="lb-results" class="hidden">
+                        <div class="lb-meta" id="lb-meta"></div>
+                        <table class="up-table" id="lb-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Name</th>
+                                    <th>Total Components</th>
+                                    <th>Practice Components</th>
+                                    <th>Weekly Streak</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lb-tbody"></tbody>
+                        </table>
+                        <p id="lb-empty" class="up-empty hidden">No data for this week yet. Click "Compute / Refresh" to generate.</p>
+                    </div>
+                </div>
+            </section>
 
     <!-- Modal Overlay -->
     <div id="modal-overlay" class="modal-overlay hidden">

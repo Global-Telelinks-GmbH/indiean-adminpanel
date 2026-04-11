@@ -218,6 +218,7 @@ function renderComponents(lesson) {
                     <span class="component-order">${comp.order}</span>
                     <span class="component-type-badge type-${comp.type}">${comp.type}</span>
                     <span class="component-title">${escHtml(comp.title)}</span>
+                    ${comp.exercise_type ? `<span class="component-special">${escHtml(comp.exercise_type)}</span>` : ''}
                     ${comp.special_feature ? `<span class="component-special">${escHtml(comp.special_feature)}</span>` : ''}
                 </div>
                 <div class="component-actions">
@@ -472,7 +473,17 @@ function showAddComponentModal(lessonId) {
         { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Activity description (optional)' },
         { name: 'content_ref', label: 'Content Reference', placeholder: 'Video URL or asset key (optional)' },
         { name: 'special_feature', label: 'Special Feature', placeholder: 'e.g., Indie Runner Game (optional)' },
+        { name: 'exercise_type', label: 'Exercise Type', placeholder: 'e.g., note_select, note_tap, playback (optional)' },
+        { name: 'exercise_params', label: 'Exercise Params (JSON)', type: 'textarea', placeholder: '{"line_space_type":"lines","quiz_type":"line_space_select","clef":"treble"}' },
+        { name: 'points', label: 'Points', type: 'number', min: 0, placeholder: '20' },
+        { name: 'gems', label: 'Gems', type: 'number', min: 0, placeholder: '30' },
+        { name: 'timeout_seconds', label: 'Timeout (seconds)', type: 'number', min: 0, placeholder: '20' },
     ], async (data) => {
+        let exerciseParams = null;
+        if (data.exercise_params && data.exercise_params.trim()) {
+            try { exerciseParams = JSON.parse(data.exercise_params); }
+            catch { throw new Error('Exercise Params must be valid JSON'); }
+        }
         const comp = await api('POST', '/api/v1/admin/roadmap/components', {
             lesson_id: lessonId,
             order: parseInt(data.order),
@@ -481,6 +492,11 @@ function showAddComponentModal(lessonId) {
             description: data.description || null,
             content_ref: data.content_ref || null,
             special_feature: data.special_feature || null,
+            exercise_type: data.exercise_type || null,
+            exercise_params: exerciseParams,
+            points: data.points ? parseInt(data.points) : null,
+            gems: data.gems ? parseInt(data.gems) : null,
+            timeout_seconds: data.timeout_seconds ? parseInt(data.timeout_seconds) : null,
         });
         const lesson = state.selectedModuleLessons.find(l => l.id === lessonId);
         if (lesson) lesson.components.push(comp);
@@ -510,7 +526,20 @@ function showEditComponentModal(componentId, lessonId) {
         { name: 'description', label: 'Description', type: 'textarea', value: comp.description || '' },
         { name: 'content_ref', label: 'Content Reference', value: comp.content_ref || '' },
         { name: 'special_feature', label: 'Special Feature', value: comp.special_feature || '' },
+        { name: 'exercise_type', label: 'Exercise Type', value: comp.exercise_type || '', placeholder: 'e.g., note_select, note_tap, playback' },
+        { name: 'exercise_params', label: 'Exercise Params (JSON)', type: 'textarea', value: comp.exercise_params ? JSON.stringify(comp.exercise_params, null, 2) : '' },
+        { name: 'points', label: 'Points', type: 'number', min: 0, value: comp.points ?? '' },
+        { name: 'gems', label: 'Gems', type: 'number', min: 0, value: comp.gems ?? '' },
+        { name: 'timeout_seconds', label: 'Timeout (seconds)', type: 'number', min: 0, value: comp.timeout_seconds ?? '' },
     ], async (data) => {
+        let exerciseParams = undefined;
+        if (data.exercise_params && data.exercise_params.trim()) {
+            try { exerciseParams = JSON.parse(data.exercise_params); }
+            catch { throw new Error('Exercise Params must be valid JSON'); }
+        } else {
+            exerciseParams = null;
+        }
+
         const payload = {};
         if (parseInt(data.order) !== comp.order) payload.order = parseInt(data.order);
         if (data.type !== comp.type) payload.type = data.type;
@@ -518,6 +547,11 @@ function showEditComponentModal(componentId, lessonId) {
         if ((data.description || null) !== (comp.description || null)) payload.description = data.description || null;
         if ((data.content_ref || null) !== (comp.content_ref || null)) payload.content_ref = data.content_ref || null;
         if ((data.special_feature || null) !== (comp.special_feature || null)) payload.special_feature = data.special_feature || null;
+        if ((data.exercise_type || null) !== (comp.exercise_type || null)) payload.exercise_type = data.exercise_type || null;
+        if (JSON.stringify(exerciseParams) !== JSON.stringify(comp.exercise_params || null)) payload.exercise_params = exerciseParams;
+        if ((data.points ? parseInt(data.points) : null) !== (comp.points ?? null)) payload.points = data.points ? parseInt(data.points) : null;
+        if ((data.gems ? parseInt(data.gems) : null) !== (comp.gems ?? null)) payload.gems = data.gems ? parseInt(data.gems) : null;
+        if ((data.timeout_seconds ? parseInt(data.timeout_seconds) : null) !== (comp.timeout_seconds ?? null)) payload.timeout_seconds = data.timeout_seconds ? parseInt(data.timeout_seconds) : null;
 
         const updated = await api('PATCH', `/api/v1/admin/roadmap/components/${componentId}`, payload);
         const idx = lesson.components.findIndex(c => c.id === componentId);
@@ -563,6 +597,7 @@ function showRoadmapView() {
     document.getElementById('roadmap-view').classList.remove('hidden');
     document.getElementById('notifications-view').classList.add('hidden');
     document.getElementById('user-progress-view').classList.add('hidden');
+    document.getElementById('leaderboard-view').classList.add('hidden');
     document.getElementById('sidebar').classList.remove('hidden');
 }
 
@@ -570,6 +605,7 @@ function showNotificationsView() {
     document.getElementById('roadmap-view').classList.add('hidden');
     document.getElementById('notifications-view').classList.remove('hidden');
     document.getElementById('user-progress-view').classList.add('hidden');
+    document.getElementById('leaderboard-view').classList.add('hidden');
     document.getElementById('sidebar').classList.add('hidden');
 }
 
@@ -577,7 +613,26 @@ function showUserProgressView() {
     document.getElementById('roadmap-view').classList.add('hidden');
     document.getElementById('notifications-view').classList.add('hidden');
     document.getElementById('user-progress-view').classList.remove('hidden');
+    document.getElementById('leaderboard-view').classList.add('hidden');
     document.getElementById('sidebar').classList.add('hidden');
+}
+
+function showLeaderboardView() {
+    document.getElementById('roadmap-view').classList.add('hidden');
+    document.getElementById('notifications-view').classList.add('hidden');
+    document.getElementById('user-progress-view').classList.add('hidden');
+    document.getElementById('leaderboard-view').classList.remove('hidden');
+    document.getElementById('sidebar').classList.add('hidden');
+    // Default week-start to current Monday
+    const weekInput = document.getElementById('lb-week-start');
+    if (!weekInput.value) {
+        const today = new Date();
+        const day = today.getDay(); // 0=Sun
+        const diff = (day === 0 ? -6 : 1 - day);
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + diff);
+        weekInput.value = monday.toISOString().slice(0, 10);
+    }
 }
 
 // ==========================================
@@ -698,6 +753,83 @@ async function sendNotification(title, body, userId = null) {
 }
 
 // ==========================================
+// LEADERBOARD
+// ==========================================
+
+async function refreshLeaderboard() {
+    const instrument = document.getElementById('lb-instrument').value;
+    const weekStart = document.getElementById('lb-week-start').value;
+    const statusEl = document.getElementById('lb-status');
+    const errorEl = document.getElementById('lb-error');
+
+    statusEl.classList.add('hidden');
+    errorEl.classList.add('hidden');
+
+    const btn = document.getElementById('lb-refresh-btn');
+    btn.disabled = true;
+    btn.textContent = 'Computing…';
+
+    try {
+        const params = `instrument=${instrument}&week_start=${weekStart}`;
+        const result = await api('POST', `/api/v1/leaderboard/admin/refresh?${params}`);
+        statusEl.textContent = `✓ Done — ${result.rows_updated} user(s) ranked for ${result.instrument} · week of ${result.week_start}`;
+        statusEl.classList.remove('hidden');
+    } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Compute / Refresh';
+    }
+}
+
+async function viewLeaderboard() {
+    const instrument = document.getElementById('lb-instrument').value;
+    const weekStart = document.getElementById('lb-week-start').value;
+    const errorEl = document.getElementById('lb-error');
+    const resultsEl = document.getElementById('lb-results');
+    const emptyEl = document.getElementById('lb-empty');
+    const tableEl = document.getElementById('lb-table');
+
+    errorEl.classList.add('hidden');
+    resultsEl.classList.add('hidden');
+
+    try {
+        const params = `instrument=${instrument}&week_start=${weekStart}`;
+        const data = await api('GET', `/api/v1/leaderboard/weekly?${params}`);
+
+        const metaEl = document.getElementById('lb-meta');
+        if (data.computed_at) {
+            metaEl.textContent = `Snapshot computed at ${formatDate(data.computed_at)} · ${data.entries.length} user(s) ranked`;
+        } else {
+            metaEl.textContent = 'No snapshot yet for this week. Click "Compute / Refresh" to generate.';
+        }
+
+        if (!data.entries.length) {
+            emptyEl.classList.remove('hidden');
+            tableEl.classList.add('hidden');
+        } else {
+            emptyEl.classList.add('hidden');
+            tableEl.classList.remove('hidden');
+            document.getElementById('lb-tbody').innerHTML = data.entries.map(e => `
+                <tr class="${data.current_user_entry && e.user_id === data.current_user_entry.user_id ? 'lb-current-user' : ''}">
+                    <td><span class="lb-rank lb-rank-${e.rank <= 3 ? e.rank : 'other'}">#${e.rank}</span></td>
+                    <td>${escHtml(e.full_name || 'Unknown')}</td>
+                    <td>${e.total_components}</td>
+                    <td>${e.practice_components}</td>
+                    <td>${e.weekly_streak} day${e.weekly_streak !== 1 ? 's' : ''}</td>
+                </tr>
+            `).join('');
+        }
+
+        resultsEl.classList.remove('hidden');
+    } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+    }
+}
+
+// ==========================================
 // EVENT LISTENERS
 // ==========================================
 
@@ -740,6 +872,11 @@ document.getElementById('instrument-filter').addEventListener('change', loadModu
 document.getElementById('roadmap-nav-btn').addEventListener('click', showRoadmapView);
 document.getElementById('notifications-nav-btn').addEventListener('click', showNotificationsView);
 document.getElementById('user-progress-nav-btn').addEventListener('click', showUserProgressView);
+document.getElementById('leaderboard-nav-btn').addEventListener('click', showLeaderboardView);
+
+// Leaderboard
+document.getElementById('lb-refresh-btn').addEventListener('click', refreshLeaderboard);
+document.getElementById('lb-view-btn').addEventListener('click', viewLeaderboard);
 
 // User Progress search
 document.getElementById('up-search-btn').addEventListener('click', async () => {
