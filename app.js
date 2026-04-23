@@ -593,36 +593,21 @@ function toast(message, type = 'success') {
 // NOTIFICATIONS
 // ==========================================
 
-function showRoadmapView() {
-    document.getElementById('roadmap-view').classList.remove('hidden');
-    document.getElementById('notifications-view').classList.add('hidden');
-    document.getElementById('user-progress-view').classList.add('hidden');
-    document.getElementById('leaderboard-view').classList.add('hidden');
-    document.getElementById('sidebar').classList.remove('hidden');
+const ALL_VIEWS = ['roadmap-view', 'notifications-view', 'user-progress-view', 'leaderboard-view', 'highlights-view'];
+
+function switchView(activeId, showSidebar = false) {
+    ALL_VIEWS.forEach(id => {
+        document.getElementById(id).classList[id === activeId ? 'remove' : 'add']('hidden');
+    });
+    document.getElementById('sidebar').classList[showSidebar ? 'remove' : 'add']('hidden');
 }
 
-function showNotificationsView() {
-    document.getElementById('roadmap-view').classList.add('hidden');
-    document.getElementById('notifications-view').classList.remove('hidden');
-    document.getElementById('user-progress-view').classList.add('hidden');
-    document.getElementById('leaderboard-view').classList.add('hidden');
-    document.getElementById('sidebar').classList.add('hidden');
-}
-
-function showUserProgressView() {
-    document.getElementById('roadmap-view').classList.add('hidden');
-    document.getElementById('notifications-view').classList.add('hidden');
-    document.getElementById('user-progress-view').classList.remove('hidden');
-    document.getElementById('leaderboard-view').classList.add('hidden');
-    document.getElementById('sidebar').classList.add('hidden');
-}
+function showRoadmapView() { switchView('roadmap-view', true); }
+function showNotificationsView() { switchView('notifications-view'); }
+function showUserProgressView() { switchView('user-progress-view'); }
 
 function showLeaderboardView() {
-    document.getElementById('roadmap-view').classList.add('hidden');
-    document.getElementById('notifications-view').classList.add('hidden');
-    document.getElementById('user-progress-view').classList.add('hidden');
-    document.getElementById('leaderboard-view').classList.remove('hidden');
-    document.getElementById('sidebar').classList.add('hidden');
+    switchView('leaderboard-view');
     // Default week-start to current Monday
     const weekInput = document.getElementById('lb-week-start');
     if (!weekInput.value) {
@@ -830,6 +815,179 @@ async function viewLeaderboard() {
 }
 
 // ==========================================
+// WEEKLY HIGHLIGHTS
+// ==========================================
+
+let whCurrentSnapshot = null; // { user_id, week_start_date, cards, ... }
+
+function showHighlightsView() {
+    document.getElementById('roadmap-view').classList.add('hidden');
+    document.getElementById('notifications-view').classList.add('hidden');
+    document.getElementById('user-progress-view').classList.add('hidden');
+    document.getElementById('leaderboard-view').classList.add('hidden');
+    document.getElementById('highlights-view').classList.remove('hidden');
+    document.getElementById('sidebar').classList.add('hidden');
+
+    // Default week-start to current Monday
+    const weekInput = document.getElementById('wh-week-start');
+    if (!weekInput.value) {
+        const today = new Date();
+        const day = today.getDay();
+        const diff = (day === 0 ? -6 : 1 - day);
+        const monday = new Date(today);
+        monday.setDate(today.getDate() + diff);
+        weekInput.value = monday.toISOString().slice(0, 10);
+    }
+}
+
+const CARD_LABELS = {
+    FIRE: '🔥 On Fire',
+    ARTIST_STATS: '📊 Artist Stats',
+    CHALLENGE: '⭐ Challenge',
+    TREASURE: '🏆 Treasure',
+    CERTIFICATION: '📈 Certification',
+    SETLIST: '🎵 Setlist',
+    FIRST_HIT: '🚀 First Hit',
+    EXAM_READY: '🎓 Exam Ready',
+};
+
+async function loadHighlights() {
+    const userId = document.getElementById('wh-user-id').value.trim();
+    const instrument = document.getElementById('wh-instrument').value;
+    const weekStart = document.getElementById('wh-week-start').value;
+    const errorEl = document.getElementById('wh-error');
+    const statusEl = document.getElementById('wh-status');
+    const resultsEl = document.getElementById('wh-results');
+
+    errorEl.classList.add('hidden');
+    statusEl.classList.add('hidden');
+    resultsEl.classList.add('hidden');
+
+    if (!userId) {
+        errorEl.textContent = 'Please enter a User ID';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+
+    const btn = document.getElementById('wh-load-btn');
+    btn.disabled = true;
+    btn.textContent = 'Loading…';
+
+    try {
+        const params = `user_id=${userId}&instrument=${instrument}${weekStart ? `&week_start=${weekStart}` : ''}`;
+        const data = await api('GET', `/api/v1/weekly-highlights/admin/lookup?${params}`);
+        whCurrentSnapshot = data;
+        renderHighlights(data);
+    } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Load Story';
+    }
+}
+
+async function regenerateHighlights() {
+    const instrument = document.getElementById('wh-instrument').value;
+    const weekStart = document.getElementById('wh-week-start').value;
+    const errorEl = document.getElementById('wh-error');
+    const statusEl = document.getElementById('wh-status');
+
+    errorEl.classList.add('hidden');
+    statusEl.classList.add('hidden');
+
+    const btn = document.getElementById('wh-regenerate-btn');
+    btn.disabled = true;
+    btn.textContent = 'Regenerating…';
+
+    try {
+        const params = `instrument=${instrument}${weekStart ? `&week_start=${weekStart}` : ''}`;
+        const result = await api('POST', `/api/v1/weekly-highlights/admin/refresh?${params}`);
+        statusEl.textContent = `✓ Regenerated ${result.users_processed} user(s) · version ${result.version}`;
+        statusEl.classList.remove('hidden');
+        // Reload the current user's snapshot if one is shown
+        if (whCurrentSnapshot) await loadHighlights();
+    } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Regenerate';
+    }
+}
+
+function renderHighlights(data) {
+    const metaEl = document.getElementById('wh-meta');
+    metaEl.textContent = `User: ${data.user_id} · Week: ${data.week_start_date} · Generated: ${formatDate(data.generated_at)} · v${data.version}`;
+
+    const grid = document.getElementById('wh-cards-grid');
+    grid.innerHTML = data.cards.map(card => `
+        <div class="wh-card" data-type="${card.type}">
+            <div class="wh-card-header">
+                <span class="wh-card-label">${CARD_LABELS[card.type] || card.type}</span>
+                <button class="btn btn-sm btn-ghost" onclick="showEditCardModal('${card.type}')">Edit</button>
+            </div>
+            <div class="wh-card-title">${escHtml(card.title)}</div>
+            <div class="wh-card-subtitle">${escHtml(card.subtitle)}</div>
+            <div class="wh-card-data">
+                <pre>${escHtml(JSON.stringify(card.data, null, 2))}</pre>
+            </div>
+            ${Object.keys(card.meta).length ? `
+            <div class="wh-card-meta">
+                <pre>${escHtml(JSON.stringify(card.meta, null, 2))}</pre>
+            </div>` : ''}
+        </div>
+    `).join('');
+
+    document.getElementById('wh-results').classList.remove('hidden');
+}
+
+function showEditCardModal(cardType) {
+    if (!whCurrentSnapshot) return;
+    const card = whCurrentSnapshot.cards.find(c => c.type === cardType);
+    if (!card) return;
+
+    showModal(`Edit Card: ${CARD_LABELS[cardType] || cardType}`, [
+        { name: 'title', label: 'Title', value: card.title, required: true },
+        { name: 'subtitle', label: 'Subtitle', type: 'textarea', value: card.subtitle, required: true },
+        { name: 'data', label: 'Data (JSON)', type: 'textarea', value: JSON.stringify(card.data, null, 2), required: true },
+        { name: 'meta', label: 'Meta (JSON)', type: 'textarea', value: JSON.stringify(card.meta, null, 2) },
+    ], async (formData) => {
+        // Validate JSON fields
+        let parsedData, parsedMeta;
+        try { parsedData = JSON.parse(formData.data); }
+        catch { throw new Error('Data field must be valid JSON'); }
+        try { parsedMeta = formData.meta && formData.meta.trim() ? JSON.parse(formData.meta) : {}; }
+        catch { throw new Error('Meta field must be valid JSON'); }
+
+        await api('PATCH', '/api/v1/weekly-highlights/admin/card', {
+            user_id: whCurrentSnapshot.user_id,
+            week_start_date: whCurrentSnapshot.week_start_date,
+            card_type: cardType,
+            title: formData.title,
+            subtitle: formData.subtitle,
+            data: parsedData,
+            meta: parsedMeta,
+        });
+
+        toast(`Card '${cardType}' updated`);
+
+        // Update local state and re-render
+        const cardIdx = whCurrentSnapshot.cards.findIndex(c => c.type === cardType);
+        if (cardIdx !== -1) {
+            whCurrentSnapshot.cards[cardIdx] = {
+                ...whCurrentSnapshot.cards[cardIdx],
+                title: formData.title,
+                subtitle: formData.subtitle,
+                data: parsedData,
+                meta: parsedMeta,
+            };
+        }
+        renderHighlights(whCurrentSnapshot);
+    });
+}
+
+// ==========================================
 // EVENT LISTENERS
 // ==========================================
 
@@ -873,6 +1031,14 @@ document.getElementById('roadmap-nav-btn').addEventListener('click', showRoadmap
 document.getElementById('notifications-nav-btn').addEventListener('click', showNotificationsView);
 document.getElementById('user-progress-nav-btn').addEventListener('click', showUserProgressView);
 document.getElementById('leaderboard-nav-btn').addEventListener('click', showLeaderboardView);
+document.getElementById('highlights-nav-btn').addEventListener('click', showHighlightsView);
+
+// Weekly Highlights
+document.getElementById('wh-load-btn').addEventListener('click', loadHighlights);
+document.getElementById('wh-regenerate-btn').addEventListener('click', regenerateHighlights);
+document.getElementById('wh-user-id').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('wh-load-btn').click();
+});
 
 // Leaderboard
 document.getElementById('lb-refresh-btn').addEventListener('click', refreshLeaderboard);

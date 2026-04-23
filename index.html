@@ -42,6 +42,7 @@
                     <button id="notifications-nav-btn" class="btn btn-ghost">Notifications</button>
                     <button id="user-progress-nav-btn" class="btn btn-ghost">User Progress</button>
                     <button id="leaderboard-nav-btn" class="btn btn-ghost">Leaderboard</button>
+                    <button id="highlights-nav-btn" class="btn btn-ghost">Weekly Highlights</button>
                 </nav>
             </div>
             <div class="topbar-right">
@@ -260,6 +261,48 @@
                             <tbody id="lb-tbody"></tbody>
                         </table>
                         <p id="lb-empty" class="up-empty hidden">No data for this week yet. Click "Compute / Refresh" to generate.</p>
+                    </div>
+                </div>
+            </section>
+            <!-- Main Panel: Weekly Highlights View -->
+            <section class="main-panel hidden" id="highlights-view">
+                <div class="wh-container">
+                    <div class="wh-header">
+                        <h2>Weekly Highlights</h2>
+                        <p class="subtitle">Look up, preview, and edit story cards for any user</p>
+                    </div>
+
+                    <div class="wh-controls">
+                        <div class="wh-controls-row">
+                            <div class="form-group">
+                                <label for="wh-user-id">User ID (UUID)</label>
+                                <input type="text" id="wh-user-id" class="wh-search-input" placeholder="e.g. 3fa85f64-5717-4562-b3fc-2c963f66afa6">
+                            </div>
+                            <div class="form-group">
+                                <label for="wh-instrument">Instrument</label>
+                                <select id="wh-instrument" class="select-input">
+                                    <option value="piano">Piano</option>
+                                    <option value="guitar">Guitar</option>
+                                    <option value="drums">Drums</option>
+                                    <option value="vocals">Vocals</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="wh-week-start">Week Start (Monday)</label>
+                                <input type="date" id="wh-week-start" class="select-input">
+                            </div>
+                            <div class="lb-btn-group">
+                                <button id="wh-load-btn" class="btn btn-primary">Load Story</button>
+                                <button id="wh-regenerate-btn" class="btn btn-ghost">Regenerate</button>
+                            </div>
+                        </div>
+                        <p id="wh-status" class="lb-status hidden"></p>
+                        <p id="wh-error" class="error-text hidden"></p>
+                    </div>
+
+                    <div id="wh-results" class="hidden">
+                        <div class="wh-meta" id="wh-meta"></div>
+                        <div class="wh-cards-grid" id="wh-cards-grid"></div>
                     </div>
                 </div>
             </section>
