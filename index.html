@@ -43,6 +43,8 @@
                     <button id="user-progress-nav-btn" class="btn btn-ghost">User Progress</button>
                     <button id="leaderboard-nav-btn" class="btn btn-ghost">Leaderboard</button>
                     <button id="highlights-nav-btn" class="btn btn-ghost">Weekly Highlights</button>
+                    <button id="referrals-nav-btn" class="btn btn-ghost">Referrals</button>
+                    <button id="delete-user-nav-btn" class="btn btn-ghost">Delete User</button>
                 </nav>
             </div>
             <div class="topbar-right">
@@ -253,9 +255,11 @@
                                 <tr>
                                     <th>Rank</th>
                                     <th>Name</th>
+                                    <th>Plan</th>
                                     <th>Total Components</th>
                                     <th>Practice Components</th>
                                     <th>Weekly Streak</th>
+                                    <th>Points</th>
                                 </tr>
                             </thead>
                             <tbody id="lb-tbody"></tbody>
@@ -303,6 +307,89 @@
                     <div id="wh-results" class="hidden">
                         <div class="wh-meta" id="wh-meta"></div>
                         <div class="wh-cards-grid" id="wh-cards-grid"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main Panel: Referrals View -->
+            <section class="main-panel hidden" id="referrals-view">
+                <div class="ref-container">
+                    <div class="ref-header">
+                        <h2>Referrals</h2>
+                        <p class="subtitle">Signup attribution, rewards, and top inviters</p>
+                    </div>
+
+                    <div class="ref-controls">
+                        <button id="ref-refresh-btn" class="btn btn-primary">Refresh</button>
+                        <p id="ref-error" class="error-text hidden"></p>
+                    </div>
+
+                    <div id="ref-results" class="hidden">
+                        <div class="ref-cards">
+                            <div class="ref-card"><div class="ref-card-val" id="ref-total-all"></div><div class="ref-card-lbl">Total redemptions</div></div>
+                            <div class="ref-card"><div class="ref-card-val" id="ref-completed-all"></div><div class="ref-card-lbl">Completed</div></div>
+                            <div class="ref-card"><div class="ref-card-val" id="ref-last-7"></div><div class="ref-card-lbl">Last 7 days</div></div>
+                            <div class="ref-card"><div class="ref-card-val" id="ref-last-30"></div><div class="ref-card-lbl">Last 30 days</div></div>
+                            <div class="ref-card"><div class="ref-card-val" id="ref-total-points"></div><div class="ref-card-lbl">Total points awarded</div></div>
+                        </div>
+
+                        <h3 class="ref-section-title">Top Referrers</h3>
+                        <table class="up-table" id="ref-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Display name</th>
+                                    <th>User ID</th>
+                                    <th>Referred</th>
+                                    <th>Points awarded</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ref-tbody"></tbody>
+                        </table>
+                        <p id="ref-empty" class="up-empty hidden">No referrals yet.</p>
+                    </div>
+                </div>
+            </section>
+            <!-- Main Panel: Delete User View -->
+            <section class="main-panel hidden" id="delete-user-view">
+                <div class="up-container">
+                    <div class="up-header">
+                        <h2>Delete User</h2>
+                        <p class="subtitle">Permanently remove a user and all their data. This action is <strong>irreversible</strong>.</p>
+                    </div>
+
+                    <div class="up-search-card">
+                        <div class="up-search-row">
+                            <input type="text" id="du-user-id-input" placeholder="Enter User ID (UUID)" class="up-search-input">
+                            <button id="du-search-btn" class="btn btn-primary">Load Preview</button>
+                        </div>
+                        <p id="du-error" class="error-text hidden"></p>
+                    </div>
+
+                    <div id="du-results" class="hidden">
+                        <div class="up-card">
+                            <div class="up-user-header">
+                                <div>
+                                    <div class="up-user-email" id="du-email"></div>
+                                    <div class="up-user-meta" id="du-meta"></div>
+                                </div>
+                                <div>
+                                    <span id="du-status-badge" class="lb-tier"></span>
+                                    <span id="du-org-badge" class="lb-tier hidden" style="background:#dc2626;color:#fff;margin-left:8px;">Owns Organization</span>
+                                </div>
+                            </div>
+                            <div class="up-position" id="du-identity"></div>
+                        </div>
+
+                        <div class="up-section">
+                            <h3 class="up-section-title">Data to be deleted</h3>
+                            <div class="du-counts-grid" id="du-counts-grid"></div>
+                        </div>
+
+                        <div class="du-actions">
+                            <button id="du-delete-btn" class="btn btn-danger">Permanently Delete User</button>
+                            <p id="du-block-msg" class="error-text hidden"></p>
+                        </div>
                     </div>
                 </div>
             </section>

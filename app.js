@@ -17,6 +17,24 @@ const state = {
 // API HELPERS
 // ==========================================
 
+function formatApiDetail(detail) {
+    if (detail == null) return '';
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) {
+        return detail.map(d => (d && (d.msg || d.message)) || JSON.stringify(d)).join('; ');
+    }
+    if (typeof detail === 'object') {
+        if (detail.message) {
+            const extras = Object.entries(detail)
+                .filter(([k]) => k !== 'message')
+                .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`);
+            return extras.length ? `${detail.message} (${extras.join('; ')})` : detail.message;
+        }
+        return JSON.stringify(detail);
+    }
+    return String(detail);
+}
+
 async function api(method, path, body = null) {
     const url = `${state.apiUrl}${path}`;
     const headers = { 'Content-Type': 'application/json' };
@@ -35,7 +53,7 @@ async function api(method, path, body = null) {
             const retryRes = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : null });
             if (!retryRes.ok) {
                 const err = await retryRes.json().catch(() => ({ detail: retryRes.statusText }));
-                throw new Error(err.detail || retryRes.statusText);
+                throw new Error(formatApiDetail(err.detail) || retryRes.statusText);
             }
             if (retryRes.status === 204) return null;
             return retryRes.json();
@@ -46,7 +64,7 @@ async function api(method, path, body = null) {
 
     if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }));
-        throw new Error(err.detail || res.statusText);
+        throw new Error(formatApiDetail(err.detail) || res.statusText);
     }
 
     if (res.status === 204) return null;
@@ -593,7 +611,7 @@ function toast(message, type = 'success') {
 // NOTIFICATIONS
 // ==========================================
 
-const ALL_VIEWS = ['roadmap-view', 'notifications-view', 'user-progress-view', 'leaderboard-view', 'highlights-view'];
+const ALL_VIEWS = ['roadmap-view', 'notifications-view', 'user-progress-view', 'leaderboard-view', 'highlights-view', 'referrals-view', 'delete-user-view'];
 
 function switchView(activeId, showSidebar = false) {
     ALL_VIEWS.forEach(id => {
@@ -605,6 +623,51 @@ function switchView(activeId, showSidebar = false) {
 function showRoadmapView() { switchView('roadmap-view', true); }
 function showNotificationsView() { switchView('notifications-view'); }
 function showUserProgressView() { switchView('user-progress-view'); }
+
+function showReferralsView() {
+    switchView('referrals-view');
+    loadReferralsOverview().catch(err => {
+        const errorEl = document.getElementById('ref-error');
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+    });
+}
+
+async function loadReferralsOverview() {
+    const errorEl = document.getElementById('ref-error');
+    const resultsEl = document.getElementById('ref-results');
+    const emptyEl = document.getElementById('ref-empty');
+    const tbody = document.getElementById('ref-tbody');
+    errorEl.classList.add('hidden');
+
+    const data = await api('GET', '/api/v1/referrals/admin/overview');
+
+    document.getElementById('ref-total-all').textContent = data.total_redemptions_all_time;
+    document.getElementById('ref-completed-all').textContent = data.completed_redemptions_all_time;
+    document.getElementById('ref-last-7').textContent = data.redemptions_last_7_days;
+    document.getElementById('ref-last-30').textContent = data.redemptions_last_30_days;
+    document.getElementById('ref-total-points').textContent = data.total_points_awarded;
+
+    tbody.innerHTML = '';
+    const top = data.top_referrers || [];
+    if (top.length === 0) {
+        emptyEl.classList.remove('hidden');
+    } else {
+        emptyEl.classList.add('hidden');
+        top.forEach((row, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${idx + 1}</td>
+                <td>${row.display_name}</td>
+                <td class="mono-cell">${row.user_id}</td>
+                <td>${row.total_referred}</td>
+                <td>${row.points_awarded_to_referrer}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+    resultsEl.classList.remove('hidden');
+}
 
 function showLeaderboardView() {
     switchView('leaderboard-view');
@@ -738,6 +801,115 @@ async function sendNotification(title, body, userId = null) {
 }
 
 // ==========================================
+// DELETE USER (admin)
+// ==========================================
+
+const DU_COUNT_LABELS = [
+    ['refresh_tokens', 'Refresh tokens'],
+    ['email_verification_tokens', 'Email verification tokens'],
+    ['password_reset_tokens', 'Password reset tokens'],
+    ['device_tokens', 'Device tokens (FCM)'],
+    ['user_progress', 'Progress rows'],
+    ['user_completed_components', 'Completed components'],
+    ['user_stats', 'Stats rows'],
+    ['user_activity_log', 'Activity log entries'],
+    ['support_tickets', 'Support tickets'],
+    ['subscription_events', 'Subscription events'],
+    ['referrals_made', 'Referrals made'],
+    ['referrals_received', 'Referrals received'],
+    ['referral_point_events', 'Referral point events'],
+    ['weekly_highlights', 'Weekly highlights'],
+    ['leaderboard_entries', 'Leaderboard entries'],
+];
+
+const duState = { loadedUserId: null, loadedEmail: null };
+
+function showDeleteUserView() { switchView('delete-user-view'); }
+
+async function loadDeleteUserPreview(userId) {
+    const errorEl = document.getElementById('du-error');
+    const resultsEl = document.getElementById('du-results');
+    const blockEl = document.getElementById('du-block-msg');
+    errorEl.classList.add('hidden');
+    blockEl.classList.add('hidden');
+    resultsEl.classList.add('hidden');
+    duState.loadedUserId = null;
+    duState.loadedEmail = null;
+
+    const data = await api('GET', `/api/v1/auth/admin/users/${userId.trim()}/summary`);
+
+    document.getElementById('du-email').textContent = data.email;
+    const tier = (data.subscription_tier || 'free').toUpperCase();
+    const subStatus = data.subscription_status || 'none';
+    const namePart = data.full_name || data.learner_first_name || '—';
+    document.getElementById('du-meta').textContent = `${namePart} · ${data.role} · ${tier} (${subStatus})`;
+
+    const statusBadge = document.getElementById('du-status-badge');
+    statusBadge.textContent = (data.status || '').toUpperCase();
+    statusBadge.className = `lb-tier lb-tier-${(data.status || '').toLowerCase()}`;
+
+    document.getElementById('du-org-badge').classList[data.owns_organization ? 'remove' : 'add']('hidden');
+
+    const identityBits = [
+        `<span class="up-position-label">User ID:</span> ${escHtml(data.id)}`,
+        `<span class="up-position-label">Created:</span> ${formatDate(data.created_at)}`,
+    ];
+    if (data.firebase_uid) identityBits.push(`<span class="up-position-label">Firebase UID:</span> ${escHtml(data.firebase_uid)}`);
+    if (data.org_id) identityBits.push(`<span class="up-position-label">Org:</span> ${escHtml(data.org_id)}`);
+    document.getElementById('du-identity').innerHTML = identityBits.join(' · ');
+
+    const grid = document.getElementById('du-counts-grid');
+    grid.innerHTML = DU_COUNT_LABELS.map(([key, label]) => {
+        const val = data.counts[key] ?? 0;
+        const dim = val === 0 ? 'du-count-zero' : '';
+        return `<div class="du-count ${dim}"><span class="du-count-val">${val}</span><span class="du-count-lbl">${label}</span></div>`;
+    }).join('');
+
+    const deleteBtn = document.getElementById('du-delete-btn');
+    if (data.owns_organization) {
+        deleteBtn.disabled = true;
+        blockEl.textContent = `Cannot delete: user owns ${data.owned_organization_ids.length} organization(s). Transfer or delete them first.`;
+        blockEl.classList.remove('hidden');
+    } else {
+        deleteBtn.disabled = false;
+        duState.loadedUserId = data.id;
+        duState.loadedEmail = data.email;
+    }
+
+    resultsEl.classList.remove('hidden');
+}
+
+async function performHardDeleteUser() {
+    if (!duState.loadedUserId) return;
+
+    const confirmed = window.confirm(
+        `Permanently delete ${duState.loadedEmail}?\n\nThis will wipe ALL of the user's data and CANNOT be undone.`
+    );
+    if (!confirmed) return;
+
+    const errorEl = document.getElementById('du-error');
+    const deleteBtn = document.getElementById('du-delete-btn');
+    errorEl.classList.add('hidden');
+    deleteBtn.disabled = true;
+    deleteBtn.textContent = 'Deleting…';
+
+    try {
+        const result = await api('DELETE', `/api/v1/auth/admin/users/${duState.loadedUserId}`);
+        toast(`User ${result.email} deleted${result.firebase_deleted ? ' (Firebase + DB)' : ' (DB only)'}`);
+        document.getElementById('du-results').classList.add('hidden');
+        document.getElementById('du-user-id-input').value = '';
+        duState.loadedUserId = null;
+        duState.loadedEmail = null;
+    } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+    } finally {
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = 'Permanently Delete User';
+    }
+}
+
+// ==========================================
 // LEADERBOARD
 // ==========================================
 
@@ -796,15 +968,20 @@ async function viewLeaderboard() {
         } else {
             emptyEl.classList.add('hidden');
             tableEl.classList.remove('hidden');
-            document.getElementById('lb-tbody').innerHTML = data.entries.map(e => `
+            document.getElementById('lb-tbody').innerHTML = data.entries.map(e => {
+                const tier = (e.subscription_tier || 'free').toLowerCase();
+                return `
                 <tr class="${data.current_user_entry && e.user_id === data.current_user_entry.user_id ? 'lb-current-user' : ''}">
                     <td><span class="lb-rank lb-rank-${e.rank <= 3 ? e.rank : 'other'}">#${e.rank}</span></td>
                     <td>${escHtml(e.full_name || 'Unknown')}</td>
+                    <td><span class="lb-tier lb-tier-${tier}">${tier.toUpperCase()}</span></td>
                     <td>${e.total_components}</td>
                     <td>${e.practice_components}</td>
                     <td>${e.weekly_streak} day${e.weekly_streak !== 1 ? 's' : ''}</td>
+                    <td>${e.total_points}</td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
         }
 
         resultsEl.classList.remove('hidden');
@@ -1032,6 +1209,33 @@ document.getElementById('notifications-nav-btn').addEventListener('click', showN
 document.getElementById('user-progress-nav-btn').addEventListener('click', showUserProgressView);
 document.getElementById('leaderboard-nav-btn').addEventListener('click', showLeaderboardView);
 document.getElementById('highlights-nav-btn').addEventListener('click', showHighlightsView);
+document.getElementById('referrals-nav-btn').addEventListener('click', showReferralsView);
+document.getElementById('ref-refresh-btn').addEventListener('click', loadReferralsOverview);
+document.getElementById('delete-user-nav-btn').addEventListener('click', showDeleteUserView);
+
+// Delete User
+document.getElementById('du-search-btn').addEventListener('click', async () => {
+    const userId = document.getElementById('du-user-id-input').value.trim();
+    const errorEl = document.getElementById('du-error');
+    if (!userId) {
+        errorEl.textContent = 'Please enter a User ID';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+    try {
+        await loadDeleteUserPreview(userId);
+    } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+        document.getElementById('du-results').classList.add('hidden');
+    }
+});
+
+document.getElementById('du-user-id-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('du-search-btn').click();
+});
+
+document.getElementById('du-delete-btn').addEventListener('click', performHardDeleteUser);
 
 // Weekly Highlights
 document.getElementById('wh-load-btn').addEventListener('click', loadHighlights);

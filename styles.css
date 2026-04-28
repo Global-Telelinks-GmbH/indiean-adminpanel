@@ -715,3 +715,118 @@ textarea { resize: vertical; min-height: 60px; }
     background: rgba(99, 102, 241, 0.08);
     border-left: 3px solid var(--primary);
 }
+
+.lb-tier {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+.lb-tier-free {
+    background: rgba(148, 163, 184, 0.15);
+    color: #64748b;
+}
+.lb-tier-gold {
+    background: rgba(251, 191, 36, 0.15);
+    color: #b45309;
+}
+.lb-tier-platinum {
+    background: rgba(124, 58, 237, 0.15);
+    color: #6d28d9;
+}
+
+/* ==================
+   Referrals view
+   ================== */
+.ref-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+}
+.ref-header { margin-bottom: 16px; }
+.ref-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.ref-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.ref-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.ref-card-val {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+.ref-card-lbl {
+    font-size: 0.78rem;
+    color: #64748b;
+    margin-top: 4px;
+}
+.ref-section-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 16px 0 8px;
+    color: #0f172a;
+}
+
+/* ==========================================
+   DELETE USER VIEW
+   ========================================== */
+.du-counts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+}
+.du-count {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.du-count-val {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+.du-count-lbl {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.du-count-zero .du-count-val { color: var(--text-muted); }
+.du-count-zero { opacity: 0.55; }
+
+.du-actions {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+.du-actions .btn-danger {
+    font-weight: 600;
+    padding: 10px 20px;
+}
+.du-actions .btn-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
