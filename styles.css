@@ -458,6 +458,51 @@ textarea { resize: vertical; min-height: 60px; }
     font-size: 0.85rem;
 }
 
+.up-filters-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.up-filters-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.up-filters-row .up-search-input { flex: 1 1 220px; min-width: 200px; }
+.up-filters-row .up-referrer-input { flex: 0 1 220px; text-transform: uppercase; }
+.up-filters-row .select-input { flex: 0 0 180px; }
+
+#up-list-status {
+    margin-top: 10px;
+}
+
+.up-users-list {
+    margin-bottom: 24px;
+    max-height: 520px;
+    overflow-y: auto;
+    border-radius: var(--radius-lg);
+}
+
+#up-users-table tbody tr.up-user-row {
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+#up-users-table tbody tr.up-user-row:hover td {
+    background: var(--bg-hover);
+}
+
+.mono-cell {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
 .up-card {
     background: var(--bg-card);
     border: 1px solid var(--border);

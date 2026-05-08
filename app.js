@@ -611,7 +611,7 @@ function toast(message, type = 'success') {
 // NOTIFICATIONS
 // ==========================================
 
-const ALL_VIEWS = ['roadmap-view', 'notifications-view', 'user-progress-view', 'leaderboard-view', 'highlights-view', 'referrals-view', 'delete-user-view'];
+const ALL_VIEWS = ['roadmap-view', 'notifications-view', 'user-progress-view', 'leaderboard-view', 'highlights-view', 'referrals-view', 'badges-view', 'delete-user-view'];
 
 function switchView(activeId, showSidebar = false) {
     ALL_VIEWS.forEach(id => {
@@ -622,7 +622,14 @@ function switchView(activeId, showSidebar = false) {
 
 function showRoadmapView() { switchView('roadmap-view', true); }
 function showNotificationsView() { switchView('notifications-view'); }
-function showUserProgressView() { switchView('user-progress-view'); }
+function showUserProgressView() {
+    switchView('user-progress-view');
+    loadUsersList().catch(err => {
+        const errorEl = document.getElementById('up-error');
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+    });
+}
 
 function showReferralsView() {
     switchView('referrals-view');
@@ -667,6 +674,114 @@ async function loadReferralsOverview() {
         });
     }
     resultsEl.classList.remove('hidden');
+}
+
+// ==========================================
+// BADGES (admin)
+// ==========================================
+
+const badgesState = { catalog: [] };
+
+function showBadgesView() {
+    switchView('badges-view');
+    loadBadgesAdmin().catch(err => {
+        const errorEl = document.getElementById('badge-action-error');
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+    });
+}
+
+async function loadBadgesAdmin() {
+    document.getElementById('badge-action-error').classList.add('hidden');
+    document.getElementById('badge-action-msg').classList.add('hidden');
+
+    // Load catalog (any authenticated user can hit this) for the dropdown
+    const catalog = await api('GET', '/api/v1/badges/catalog');
+    badgesState.catalog = catalog.badges || [];
+
+    const sel = document.getElementById('badge-key-select');
+    sel.innerHTML = badgesState.catalog
+        .map(b => `<option value="${b.key}">${escHtml(b.display_name)} (${b.key})</option>`)
+        .join('');
+
+    // Load admin stats
+    const stats = await api('GET', '/api/v1/badges/admin/stats');
+    const rows = stats.stats || [];
+    document.getElementById('badge-stats-count').textContent = rows.length;
+    const tbody = document.getElementById('badge-stats-tbody');
+    const empty = document.getElementById('badge-stats-empty');
+    const table = document.getElementById('badge-stats-table');
+    if (rows.length === 0) {
+        empty.classList.remove('hidden');
+        table.classList.add('hidden');
+        tbody.innerHTML = '';
+        return;
+    }
+    empty.classList.add('hidden');
+    table.classList.remove('hidden');
+    tbody.innerHTML = rows.map(r => `
+        <tr>
+            <td class="mono-cell">${escHtml(r.key)}</td>
+            <td>${escHtml(r.display_name)}</td>
+            <td>${r.awarded_count}</td>
+        </tr>
+    `).join('');
+}
+
+async function awardBadgeManually() {
+    const userId = document.getElementById('badge-user-id-input').value.trim();
+    const badgeKey = document.getElementById('badge-key-select').value;
+    const errEl = document.getElementById('badge-action-error');
+    const msgEl = document.getElementById('badge-action-msg');
+    errEl.classList.add('hidden');
+    msgEl.classList.add('hidden');
+
+    if (!userId) {
+        errEl.textContent = 'Enter a User ID';
+        errEl.classList.remove('hidden');
+        return;
+    }
+    if (!badgeKey) {
+        errEl.textContent = 'Select a badge';
+        errEl.classList.remove('hidden');
+        return;
+    }
+    try {
+        const res = await api('POST', '/api/v1/badges/admin/award', {
+            user_id: userId,
+            badge_key: badgeKey,
+        });
+        msgEl.textContent = res.message || 'Awarded';
+        msgEl.classList.remove('hidden');
+        await loadBadgesAdmin();
+    } catch (err) {
+        errEl.textContent = err.message;
+        errEl.classList.remove('hidden');
+    }
+}
+
+async function revokeBadgeManually() {
+    const userId = document.getElementById('badge-user-id-input').value.trim();
+    const badgeKey = document.getElementById('badge-key-select').value;
+    const errEl = document.getElementById('badge-action-error');
+    const msgEl = document.getElementById('badge-action-msg');
+    errEl.classList.add('hidden');
+    msgEl.classList.add('hidden');
+
+    if (!userId || !badgeKey) {
+        errEl.textContent = 'User ID and badge are required';
+        errEl.classList.remove('hidden');
+        return;
+    }
+    try {
+        const res = await api('DELETE', `/api/v1/badges/admin/${encodeURIComponent(userId)}/${encodeURIComponent(badgeKey)}`);
+        msgEl.textContent = res.message || 'Revoked';
+        msgEl.classList.remove('hidden');
+        await loadBadgesAdmin();
+    } catch (err) {
+        errEl.textContent = err.message;
+        errEl.classList.remove('hidden');
+    }
 }
 
 function showLeaderboardView() {
@@ -772,6 +887,70 @@ async function loadUserProgress(userId) {
     }
 
     resultsEl.classList.remove('hidden');
+}
+
+async function loadUsersList() {
+    const errorEl = document.getElementById('up-error');
+    const statusEl = document.getElementById('up-list-status');
+    const tbody = document.getElementById('up-users-tbody');
+    const emptyEl = document.getElementById('up-users-empty');
+    const tableEl = document.getElementById('up-users-table');
+    errorEl.classList.add('hidden');
+
+    const search = document.getElementById('up-search-input').value.trim();
+    const instrument = document.getElementById('up-instrument-filter').value;
+    const referrerCode = document.getElementById('up-referrer-code').value.trim();
+
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (instrument) params.set('instrument', instrument);
+    if (referrerCode) params.set('referrer_code', referrerCode);
+
+    statusEl.textContent = 'Loading users…';
+    const qs = params.toString();
+    const users = await api('GET', `/api/v1/auth/admin/users${qs ? `?${qs}` : ''}`);
+
+    if (!users.length) {
+        tbody.innerHTML = '';
+        tableEl.classList.add('hidden');
+        emptyEl.classList.remove('hidden');
+        statusEl.textContent = '0 users';
+        return;
+    }
+
+    emptyEl.classList.add('hidden');
+    tableEl.classList.remove('hidden');
+    statusEl.textContent = `Showing ${users.length} user${users.length === 1 ? '' : 's'} (newest first)`;
+
+    tbody.innerHTML = users.map(u => {
+        const tier = (u.subscription_tier || 'free').toLowerCase();
+        const instr = u.instrument
+            ? u.instrument.charAt(0).toUpperCase() + u.instrument.slice(1)
+            : '—';
+        return `
+            <tr class="up-user-row" onclick="selectUserForProgress('${u.id}')">
+                <td>${escHtml(u.email)}</td>
+                <td>${escHtml(u.full_name || '—')}</td>
+                <td>${instr}</td>
+                <td><span class="lb-tier lb-tier-${tier}">${tier.toUpperCase()}</span></td>
+                <td class="mono-cell">${u.referral_code ? escHtml(u.referral_code) : '—'}</td>
+                <td class="up-date">${formatDate(u.created_at)}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function selectUserForProgress(userId) {
+    const errorEl = document.getElementById('up-error');
+    errorEl.classList.add('hidden');
+    try {
+        await loadUserProgress(userId);
+        const results = document.getElementById('up-results');
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+    }
 }
 
 function formatSeconds(secs) {
@@ -1211,6 +1390,9 @@ document.getElementById('leaderboard-nav-btn').addEventListener('click', showLea
 document.getElementById('highlights-nav-btn').addEventListener('click', showHighlightsView);
 document.getElementById('referrals-nav-btn').addEventListener('click', showReferralsView);
 document.getElementById('ref-refresh-btn').addEventListener('click', loadReferralsOverview);
+document.getElementById('badges-nav-btn').addEventListener('click', showBadgesView);
+document.getElementById('badge-award-btn').addEventListener('click', awardBadgeManually);
+document.getElementById('badge-revoke-btn').addEventListener('click', revokeBadgeManually);
 document.getElementById('delete-user-nav-btn').addEventListener('click', showDeleteUserView);
 
 // Delete User
@@ -1248,25 +1430,39 @@ document.getElementById('wh-user-id').addEventListener('keydown', (e) => {
 document.getElementById('lb-refresh-btn').addEventListener('click', refreshLeaderboard);
 document.getElementById('lb-view-btn').addEventListener('click', viewLeaderboard);
 
-// User Progress search
-document.getElementById('up-search-btn').addEventListener('click', async () => {
-    const userId = document.getElementById('up-user-id-input').value.trim();
-    const errorEl = document.getElementById('up-error');
-    if (!userId) {
-        errorEl.textContent = 'Please enter a User ID';
-        errorEl.classList.remove('hidden');
-        return;
-    }
-    try {
-        await loadUserProgress(userId);
-    } catch (err) {
+// User Progress — filters
+let upFilterDebounce = null;
+function debouncedReloadUsers() {
+    if (upFilterDebounce) clearTimeout(upFilterDebounce);
+    upFilterDebounce = setTimeout(() => {
+        loadUsersList().catch(err => {
+            const errorEl = document.getElementById('up-error');
+            errorEl.textContent = err.message;
+            errorEl.classList.remove('hidden');
+        });
+    }, 300);
+}
+
+document.getElementById('up-search-input').addEventListener('input', debouncedReloadUsers);
+document.getElementById('up-referrer-code').addEventListener('input', debouncedReloadUsers);
+document.getElementById('up-instrument-filter').addEventListener('change', () => {
+    loadUsersList().catch(err => {
+        const errorEl = document.getElementById('up-error');
         errorEl.textContent = err.message;
         errorEl.classList.remove('hidden');
-    }
+    });
 });
 
-document.getElementById('up-user-id-input').addEventListener('keydown', async (e) => {
-    if (e.key === 'Enter') document.getElementById('up-search-btn').click();
+document.getElementById('up-clear-filters-btn').addEventListener('click', () => {
+    document.getElementById('up-search-input').value = '';
+    document.getElementById('up-instrument-filter').value = '';
+    document.getElementById('up-referrer-code').value = '';
+    document.getElementById('up-results').classList.add('hidden');
+    loadUsersList().catch(err => {
+        const errorEl = document.getElementById('up-error');
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+    });
 });
 
 // Notifications form

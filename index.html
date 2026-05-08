@@ -44,6 +44,7 @@
                     <button id="leaderboard-nav-btn" class="btn btn-ghost">Leaderboard</button>
                     <button id="highlights-nav-btn" class="btn btn-ghost">Weekly Highlights</button>
                     <button id="referrals-nav-btn" class="btn btn-ghost">Referrals</button>
+                    <button id="badges-nav-btn" class="btn btn-ghost">Badges</button>
                     <button id="delete-user-nav-btn" class="btn btn-ghost">Delete User</button>
                 </nav>
             </div>
@@ -145,15 +146,41 @@
                 <div class="up-container">
                     <div class="up-header">
                         <h2>User Progress</h2>
-                        <p class="subtitle">Look up video and exercise progress for any user</p>
+                        <p class="subtitle">Pick a user from the list to view their video and exercise progress</p>
                     </div>
 
-                    <div class="up-search-card">
-                        <div class="up-search-row">
-                            <input type="text" id="up-user-id-input" placeholder="Enter User ID (UUID)" class="up-search-input">
-                            <button id="up-search-btn" class="btn btn-primary">Look Up</button>
+                    <div class="up-filters-card">
+                        <div class="up-filters-row">
+                            <input type="text" id="up-search-input" placeholder="Search by email or name…" class="up-search-input">
+                            <select id="up-instrument-filter" class="select-input">
+                                <option value="">All instruments</option>
+                                <option value="piano">Piano</option>
+                                <option value="guitar">Guitar</option>
+                                <option value="drums">Drums</option>
+                                <option value="vocals">Vocals</option>
+                            </select>
+                            <input type="text" id="up-referrer-code" placeholder="Referrer code (e.g. ABCD1234)" class="up-search-input up-referrer-input" maxlength="8">
+                            <button id="up-clear-filters-btn" class="btn btn-ghost">Clear</button>
                         </div>
+                        <p id="up-list-status" class="meta-text"></p>
                         <p id="up-error" class="error-text hidden"></p>
+                    </div>
+
+                    <div class="up-users-list">
+                        <table class="up-table" id="up-users-table">
+                            <thead>
+                                <tr>
+                                    <th>Email</th>
+                                    <th>Name</th>
+                                    <th>Instrument</th>
+                                    <th>Tier</th>
+                                    <th>Their code</th>
+                                    <th>Joined</th>
+                                </tr>
+                            </thead>
+                            <tbody id="up-users-tbody"></tbody>
+                        </table>
+                        <p id="up-users-empty" class="up-empty hidden">No users match these filters.</p>
                     </div>
 
                     <div id="up-results" class="hidden">
@@ -350,6 +377,45 @@
                     </div>
                 </div>
             </section>
+            <!-- Main Panel: Badges View -->
+            <section class="main-panel hidden" id="badges-view">
+                <div class="up-container">
+                    <div class="up-header">
+                        <h2>Achievement Badges</h2>
+                        <p class="subtitle">Catalog stats and manual award/revoke</p>
+                    </div>
+
+                    <div class="up-section">
+                        <h3 class="up-section-title">Manual Award / Revoke</h3>
+                        <div class="up-search-card">
+                            <div class="up-search-row" style="flex-wrap:wrap;gap:8px;">
+                                <input type="text" id="badge-user-id-input" placeholder="User ID (UUID)" class="up-search-input" style="flex:2 1 280px;">
+                                <select id="badge-key-select" class="select-input" style="flex:1 1 200px;"></select>
+                                <button id="badge-award-btn" class="btn btn-primary">Award</button>
+                                <button id="badge-revoke-btn" class="btn btn-danger">Revoke</button>
+                            </div>
+                            <p id="badge-action-msg" class="lb-status hidden"></p>
+                            <p id="badge-action-error" class="error-text hidden"></p>
+                        </div>
+                    </div>
+
+                    <div class="up-section">
+                        <h3 class="up-section-title">Catalog & Award Counts <span id="badge-stats-count" class="up-count-badge"></span></h3>
+                        <p id="badge-stats-empty" class="up-empty hidden">No badges in catalog. Run the latest migration.</p>
+                        <table class="up-table" id="badge-stats-table">
+                            <thead>
+                                <tr>
+                                    <th>Key</th>
+                                    <th>Display Name</th>
+                                    <th>Awards</th>
+                                </tr>
+                            </thead>
+                            <tbody id="badge-stats-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
             <!-- Main Panel: Delete User View -->
             <section class="main-panel hidden" id="delete-user-view">
                 <div class="up-container">
