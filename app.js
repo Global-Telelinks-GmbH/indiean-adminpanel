@@ -611,7 +611,7 @@ function toast(message, type = 'success') {
 // NOTIFICATIONS
 // ==========================================
 
-const ALL_VIEWS = ['roadmap-view', 'notifications-view', 'user-progress-view', 'leaderboard-view', 'highlights-view', 'referrals-view', 'badges-view', 'delete-user-view'];
+const ALL_VIEWS = ['roadmap-view', 'notifications-view', 'user-progress-view', 'leaderboard-view', 'highlights-view', 'referrals-view', 'badges-view', 'bump-progress-view', 'delete-user-view'];
 
 function switchView(activeId, showSidebar = false) {
     ALL_VIEWS.forEach(id => {
@@ -1089,6 +1089,95 @@ async function performHardDeleteUser() {
 }
 
 // ==========================================
+// BUMP PROGRESS
+// ==========================================
+
+const bpState = { loadedUserId: null, loadedEmail: null };
+
+function showBumpProgressView() { switchView('bump-progress-view'); }
+
+function bpRenderPosition(data) {
+    const posEl = document.getElementById('bp-position');
+    if (data.current_module || data.current_lesson || data.current_component) {
+        posEl.innerHTML = `<span class="up-position-label">Currently on:</span> ${escHtml(data.current_module || '—')} › ${escHtml(data.current_lesson || '—')} › ${escHtml(data.current_component || '—')}`;
+    } else {
+        posEl.innerHTML = `<span class="up-position-label">Currently on:</span> <em>No active node (curriculum complete or not started)</em>`;
+    }
+}
+
+async function loadBumpUserPreview(userId) {
+    const errorEl = document.getElementById('bp-error');
+    const resultsEl = document.getElementById('bp-results');
+    const blockEl = document.getElementById('bp-block-msg');
+    const statusEl = document.getElementById('bp-status');
+    errorEl.classList.add('hidden');
+    blockEl.classList.add('hidden');
+    statusEl.classList.add('hidden');
+    resultsEl.classList.add('hidden');
+    bpState.loadedUserId = null;
+    bpState.loadedEmail = null;
+
+    const data = await api('GET', `/api/v1/admin/roadmap/users/${userId.trim()}/progress`);
+
+    document.getElementById('bp-email').textContent = data.email;
+    const instrText = data.instrument ? data.instrument.charAt(0).toUpperCase() + data.instrument.slice(1) : 'No instrument';
+    const tier = (data.subscription_tier || 'free').toUpperCase();
+    const subStatus = data.subscription_status || 'none';
+    document.getElementById('bp-meta').textContent = `${instrText} · ${tier} (${subStatus})`;
+
+    document.getElementById('bp-streak').textContent = data.streak ?? 0;
+    document.getElementById('bp-gems').textContent = data.gems ?? 0;
+    document.getElementById('bp-completed').textContent = data.components_completed ?? 0;
+
+    bpRenderPosition(data);
+
+    const bumpBtn = document.getElementById('bp-bump-btn');
+    if (!data.instrument) {
+        bumpBtn.disabled = true;
+        blockEl.textContent = 'User has no instrument selected — cannot bump.';
+        blockEl.classList.remove('hidden');
+    } else {
+        bumpBtn.disabled = false;
+        bpState.loadedUserId = data.user_id;
+        bpState.loadedEmail = data.email;
+    }
+
+    resultsEl.classList.remove('hidden');
+}
+
+async function performBumpUser() {
+    if (!bpState.loadedUserId) return;
+
+    const confirmed = window.confirm(
+        `Bump ${bpState.loadedEmail} past their current node?\n\nThe current node will be marked as completed (no gems/streak/badges awarded) and the user will advance to the next node.`
+    );
+    if (!confirmed) return;
+
+    const errorEl = document.getElementById('bp-error');
+    const statusEl = document.getElementById('bp-status');
+    const bumpBtn = document.getElementById('bp-bump-btn');
+    errorEl.classList.add('hidden');
+    statusEl.classList.add('hidden');
+    bumpBtn.disabled = true;
+    bumpBtn.textContent = 'Bumping…';
+
+    try {
+        const result = await api('POST', `/api/v1/admin/roadmap/users/${bpState.loadedUserId}/bump-progress`);
+        statusEl.textContent = `✓ ${result.message}`;
+        statusEl.classList.remove('hidden');
+        toast('User bumped to next node');
+        // Refresh preview to show the new current node
+        await loadBumpUserPreview(bpState.loadedUserId);
+    } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+    } finally {
+        bumpBtn.disabled = false;
+        bumpBtn.textContent = 'Bump to Next Node';
+    }
+}
+
+// ==========================================
 // LEADERBOARD
 // ==========================================
 
@@ -1394,6 +1483,31 @@ document.getElementById('badges-nav-btn').addEventListener('click', showBadgesVi
 document.getElementById('badge-award-btn').addEventListener('click', awardBadgeManually);
 document.getElementById('badge-revoke-btn').addEventListener('click', revokeBadgeManually);
 document.getElementById('delete-user-nav-btn').addEventListener('click', showDeleteUserView);
+document.getElementById('bump-progress-nav-btn').addEventListener('click', showBumpProgressView);
+
+// Bump Progress
+document.getElementById('bp-load-btn').addEventListener('click', async () => {
+    const userId = document.getElementById('bp-user-id-input').value.trim();
+    const errorEl = document.getElementById('bp-error');
+    if (!userId) {
+        errorEl.textContent = 'Please enter a User ID';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+    try {
+        await loadBumpUserPreview(userId);
+    } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+        document.getElementById('bp-results').classList.add('hidden');
+    }
+});
+
+document.getElementById('bp-user-id-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('bp-load-btn').click();
+});
+
+document.getElementById('bp-bump-btn').addEventListener('click', performBumpUser);
 
 // Delete User
 document.getElementById('du-search-btn').addEventListener('click', async () => {
